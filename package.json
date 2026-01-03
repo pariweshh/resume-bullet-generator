@@ -1,6 +1,6 @@
 {
-  "name": "micro-saas-tool",
-  "version": "0.1.0",
+  "name": "resume-bullet-generator",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
+    "@upstash/redis": "^1.36.0",
+    "clsx": "^2.1.1",
+    "nanoid": "^5.1.6",
     "next": "16.1.1",
+    "openai": "^6.15.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
