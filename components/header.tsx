@@ -1,5 +1,6 @@
 import { Badge, SparklesIcon } from "@/components/ui"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 import Link from "next/link"
 
 /**
@@ -24,24 +25,20 @@ export function Header({ tier = "free" }: HeaderProps) {
       )}
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-24">
           {/* Logo */}
           <Link
             href="/"
             className="flex items-center gap-2 text-gray-900 dark:text-gray-100"
           >
-            <div
-              className={cn(
-                "flex items-center justify-center",
-                "w-9 h-9 rounded-lg",
-                "bg-brand-600 text-white"
-              )}
-            >
-              <SparklesIcon size={20} />
-            </div>
-            <span className="font-semibold text-lg hidden sm:block">
-              Resume Bullet Generator
-            </span>
+            <Image
+              src={"/logo.png"}
+              width={500}
+              height={500}
+              alt="Logo"
+              className="w-auto h-16"
+            />
+
             <span className="font-semibold text-lg sm:hidden">BulletGen</span>
           </Link>
 

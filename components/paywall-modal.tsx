@@ -32,7 +32,7 @@ const TIERS = [
   {
     id: "basic",
     name: "Basic",
-    price: 9,
+    price: 15,
     description: "Perfect for a single job search",
     features: [
       "50 bullet generations",
@@ -46,7 +46,7 @@ const TIERS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 19,
+    price: 29,
     description: "Unlimited access forever",
     features: [
       "Unlimited generations",
@@ -124,7 +124,7 @@ export function PaywallModal({ isOpen, onClose, message }: PaywallModalProps) {
         className={cn(
           "relative w-full max-w-2xl max-h-[90vh] overflow-y-auto",
           "bg-white dark:bg-gray-900 rounded-2xl shadow-2xl",
-          "animate-[slide-up_0.3s_ease-out]"
+          "animate-slide-up"
         )}
       >
         {/* Close button */}
@@ -168,7 +168,7 @@ export function PaywallModal({ isOpen, onClose, message }: PaywallModalProps) {
               key={tier.id}
               padded
               className={cn(
-                "relative",
+                "relative overflow-visible",
                 tier.popular && "ring-2 ring-brand-500 dark:ring-brand-400"
               )}
             >
@@ -177,7 +177,7 @@ export function PaywallModal({ isOpen, onClose, message }: PaywallModalProps) {
                 <Badge
                   variant="primary"
                   size="sm"
-                  className="absolute -top-2.5 left-1/2 -translate-x-1/2"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 shadow-sm"
                 >
                   <CrownIcon size={12} className="mr-1" />
                   Best Value
@@ -197,7 +197,7 @@ export function PaywallModal({ isOpen, onClose, message }: PaywallModalProps) {
               {/* Price */}
               <div className="text-center mb-4">
                 <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                  ${tier.price}
+                  A${tier.price}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400 ml-1">
                   one-time
@@ -213,7 +213,7 @@ export function PaywallModal({ isOpen, onClose, message }: PaywallModalProps) {
                   >
                     <CheckIcon
                       size={16}
-                      className="flex-shrink-0 mt-0.5 text-green-500"
+                      className="shrink-0 mt-0.5 text-green-500"
                     />
                     {feature}
                   </li>

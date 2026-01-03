@@ -150,8 +150,8 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 1. Create store at [LemonSqueezy](https://app.lemonsqueezy.com/)
 2. Create two products:
-   - **Basic** - $9.99 one-time, 50 generations
-   - **Lifetime** - $19.99 one-time, unlimited
+   - **Basic** - $14.99 one-time, 50 generations
+   - **Lifetime** - $29.99 one-time, unlimited
 3. Set up webhook:
    - URL: `https://yourdomain.com/api/webhook`
    - Events: `order_created`
@@ -227,8 +227,8 @@ const count = await redis.get(`stats:daily:${today}`)
 | Tier     | Price  | Generations | Target Customer              |
 | -------- | ------ | ----------- | ---------------------------- |
 | Free     | $0     | 3/day       | Try before buy               |
-| Basic    | $9.99  | 50 total    | Single job search            |
-| Lifetime | $19.99 | Unlimited   | Career changers, power users |
+| Basic    | $14.99 | 50 total    | Single job search            |
+| Lifetime | $29.99 | Unlimited   | Career changers, power users |
 
 **Revenue projections** (conservative):
 

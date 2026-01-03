@@ -10,6 +10,7 @@ const TIERS = [
     id: "free",
     name: "Free",
     price: 0,
+    currency: "AUD",
     description: "Try it out",
     features: [
       "3 generations per day",
@@ -25,7 +26,8 @@ const TIERS = [
   {
     id: "basic",
     name: "Basic",
-    price: 9.99,
+    price: 14.99,
+    currency: "AUD",
     description: "For a single job search",
     features: [
       "50 bullet generations",
@@ -42,7 +44,8 @@ const TIERS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 19.99,
+    price: 29.99,
+    currency: "AUD",
     description: "Unlimited forever",
     features: [
       "Unlimited generations",
@@ -108,7 +111,7 @@ export function PricingSection({ currentTier = "free" }: PricingSectionProps) {
               key={tier.id}
               padded
               className={cn(
-                "relative flex flex-col",
+                "relative flex flex-col overflow-visible",
                 tier.popular && "ring-2 ring-brand-500 dark:ring-brand-400",
                 isCurrentTier && "bg-gray-50 dark:bg-gray-800/50"
               )}
@@ -118,7 +121,7 @@ export function PricingSection({ currentTier = "free" }: PricingSectionProps) {
                 <Badge
                   variant="primary"
                   size="sm"
-                  className="absolute -top-2.5 left-1/2 -translate-x-1/2"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 shadow-sm"
                 >
                   <CrownIcon size={12} className="mr-1" />
                   Best Value
@@ -138,7 +141,7 @@ export function PricingSection({ currentTier = "free" }: PricingSectionProps) {
               {/* Price */}
               <div className="text-center mb-6">
                 <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                  {tier.price === 0 ? "Free" : `$${tier.price}`}
+                  {tier.price === 0 ? "Free" : `A$${tier.price}`}
                 </span>
                 {tier.price > 0 && (
                   <span className="text-gray-500 dark:text-gray-400 ml-1">
