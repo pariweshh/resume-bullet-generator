@@ -9,7 +9,7 @@ import OpenAI from "openai"
  * - Estimated cost per generation: ~$0.001 (less than 1 cent)
  */
 export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 })
 
 /**

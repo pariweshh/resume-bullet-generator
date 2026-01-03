@@ -25,7 +25,7 @@ const TIERS = [
   {
     id: "basic",
     name: "Basic",
-    price: 9,
+    price: 9.99,
     description: "For a single job search",
     features: [
       "50 bullet generations",
@@ -42,7 +42,7 @@ const TIERS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 19,
+    price: 19.99,
     description: "Unlimited forever",
     features: [
       "Unlimited generations",

@@ -14,7 +14,7 @@ export function cn(...inputs: ClassValue[]): string {
  * Formats a number as currency (USD by default).
  *
  * @example
- * formatCurrency(9) // "$9"
+ * formatCurrency(9.99) // "$9.99"
  * formatCurrency(19.99) // "$19.99"
  */
 export function formatCurrency(
