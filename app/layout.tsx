@@ -13,7 +13,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     default: "Resume Bullet Generator | AI-Powered Resume Writer",
-    template: "%s | Resume Bullet Generator",
+    template: "%s | Resume Bullets Generator",
   },
   description:
     "Generate tailored, quantified resume bullet points in seconds. Paste your job description and experience — get 10 powerful STAR-format bullets instantly.",
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
     "career",
     "STAR format",
   ],
-  authors: [{ name: "Resume Bullet Generator" }],
-  creator: "Resume Bullet Generator",
-  publisher: "Resume Bullet Generator",
+  authors: [{ name: "Resume Bullets Generator" }],
+  creator: "Resume Bullets Generator",
+  publisher: "Resume Bullets Generator",
   robots: {
     index: true,
     follow: true,
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Resume Bullet Generator",
+    siteName: "Resume Bullets Generator",
     title: "Resume Bullet Generator | AI-Powered Resume Writer",
     description:
       "Generate tailored, quantified resume bullet points in seconds. Paste your job description and experience — get 10 powerful STAR-format bullets instantly.",
