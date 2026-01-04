@@ -33,58 +33,87 @@ function SuccessContent() {
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Fetch license key by order ID with retry logic.
-   * Webhook might take a few seconds to process.
+   * Fetch license key - either by order ID or from localStorage.
    */
   useEffect(() => {
-    if (!orderId) {
-      setIsLoading(false)
-      setError(
-        "No order ID found. Please check your email for your license key."
-      )
-      return
-    }
-
     let attempts = 0
     const maxAttempts = 10
     const retryDelay = 2000 // 2 seconds between retries
 
-    const fetchLicense = async () => {
+    // If we have an order ID, fetch by order ID
+    const fetchByOrderId = async (): Promise<boolean> => {
+      if (!orderId) return false
+
       try {
         const response = await fetch(`/api/license/${orderId}`)
         const data = await response.json()
 
         if (response.ok && data.found) {
-          // License found!
           setLicenseKey(data.licenseKey)
           setTier(data.tier)
-          setIsLoading(false)
-
-          // Auto-save to localStorage
           localStorage.setItem("license_key", data.licenseKey)
           return true
         }
-
         return false
       } catch (err) {
-        console.error("Error fetching license:", err)
+        console.error("Error fetching license by order:", err)
         return false
       }
+    }
+
+    // Check localStorage for existing license
+    const checkLocalStorage = async (): Promise<boolean> => {
+      const storedLicense = localStorage.getItem("license_key")
+
+      if (storedLicense) {
+        try {
+          const response = await fetch("/api/verify-license", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ licenseKey: storedLicense }),
+          })
+
+          const data = await response.json()
+
+          if (response.ok && data.isValid) {
+            setLicenseKey(storedLicense)
+            setTier(data.tier)
+            return true
+          }
+        } catch (err) {
+          console.error("Error verifying stored license:", err)
+        }
+      }
+      return false
     }
 
     const attemptFetch = async () => {
       attempts++
 
-      const found = await fetchLicense()
+      // First try order ID if available
+      if (orderId) {
+        const found = await fetchByOrderId()
+        if (found) {
+          setIsLoading(false)
+          return
+        }
+      }
 
-      if (!found && attempts < maxAttempts) {
-        // Retry after delay
+      // Then check localStorage
+      const foundInStorage = await checkLocalStorage()
+      if (foundInStorage) {
+        setIsLoading(false)
+        return
+      }
+
+      // Retry if we haven't exceeded max attempts
+      if (attempts < maxAttempts) {
         setTimeout(attemptFetch, retryDelay)
-      } else if (!found) {
+      } else {
         // Max attempts reached
         setIsLoading(false)
         setError(
-          "Your license is being processed. Please check your email or refresh this page in a minute."
+          "Your license is being processed. Please wait a moment and refresh this page, or check your email."
         )
       }
     }
