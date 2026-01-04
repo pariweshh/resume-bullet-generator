@@ -9,8 +9,16 @@ import { Redis } from "@upstash/redis"
  * Free tier: 10,000 requests/day — plenty for an MVP
  */
 function createRedisClient(): Redis {
-  const url = process.env.UPSTASH_REDIS_REST_URL!
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN!
+  // Skip Redis initialization on client-side
+  if (typeof window !== "undefined") {
+    // Return a dummy client for client-side (will never be used)
+    return new Redis({
+      url: "https://placeholder.upstash.io",
+      token: "placeholder",
+    })
+  }
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
 
   if (!url || !token) {
     // Return a mock client during build time or when env vars are missing
