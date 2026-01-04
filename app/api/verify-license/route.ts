@@ -57,8 +57,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if license is in a usable state
-    // Valid statuses: "active", "inactive" (test mode), or if valid=true from API
     const invalidStatuses = ["expired", "disabled", "revoked"]
+
     if (invalidStatuses.includes(validation.status.toLowerCase())) {
       return NextResponse.json(
         {
@@ -68,6 +68,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       )
     }
+
+    // In production, only allow active licenses (reject test mode keys)
+    // Test mode keys have status "inactive" and testMode: true
+    if (validation.status === "inactive" && !validation.testMode) {
+      return NextResponse.json(
+        {
+          isValid: false,
+          error: "License is inactive",
+        },
+        { status: 400 }
+      )
+    }
+
+    // Optionally: Block test mode keys in production
+    // Uncomment this when you go live:
+    // if (validation.testMode && process.env.NODE_ENV === "production") {
+    //   return NextResponse.json(
+    //     {
+    //       isValid: false,
+    //       error: "Test licenses are not valid in production",
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Calculate remaining generations
     let remaining = 999 // Default for lifetime

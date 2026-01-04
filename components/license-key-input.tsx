@@ -38,24 +38,11 @@ export function LicenseKeyInput({
   const [isPending, startTransition] = useTransition()
 
   /**
-   * Formats license key input with dashes.
-   * Converts: "ABCD1234EFGH5678" → "ABCD-1234-EFGH-5678"
-   */
-  const formatLicenseKey = (value: string): string => {
-    // Remove all non-alphanumeric characters and convert to uppercase
-    const cleaned = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-
-    // Split into groups of 4 and join with dashes
-    const groups = cleaned.match(/.{1,4}/g) || []
-    return groups.slice(0, 4).join("-")
-  }
-
-  /**
-   * Handles input change with formatting.
+   * Handles input change - accepts any format from LemonSqueezy.
    */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatLicenseKey(e.target.value)
-    setLicenseKey(formatted)
+    // Just trim whitespace, keep the rest as-is
+    setLicenseKey(e.target.value.trim())
     setError(null)
   }
 
@@ -63,7 +50,7 @@ export function LicenseKeyInput({
    * Verifies the license key with the API.
    */
   const handleVerify = () => {
-    if (licenseKey.length < 19) {
+    if (licenseKey.length < 8) {
       setError("Please enter a valid license key")
       return
     }
@@ -81,7 +68,7 @@ export function LicenseKeyInput({
         const data = await response.json()
 
         if (!response.ok || !data.isValid) {
-          setError("Invalid or expired license key")
+          setError(data.error || "Invalid or expired license key")
           return
         }
 
@@ -131,7 +118,7 @@ export function LicenseKeyInput({
         <button
           onClick={handleClear}
           className={cn(
-            "p-1.5 rounded-md",
+            "p-1.5 rounded-md cursor-pointer",
             "text-green-600 hover:text-green-800",
             "dark:text-green-400 dark:hover:text-green-200",
             "hover:bg-green-100 dark:hover:bg-green-900/40",
@@ -152,7 +139,7 @@ export function LicenseKeyInput({
       <button
         onClick={() => setIsExpanded(true)}
         className={cn(
-          "flex items-center gap-2 text-sm",
+          "flex items-center gap-2 text-sm cursor-pointer",
           "text-gray-500 hover:text-gray-700",
           "dark:text-gray-400 dark:hover:text-gray-200",
           "transition-colors"
@@ -180,16 +167,15 @@ export function LicenseKeyInput({
         </span>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           value={licenseKey}
           onChange={handleInputChange}
-          placeholder="XXXX-XXXX-XXXX-XXXX"
-          maxLength={19}
+          placeholder="Paste your license key here"
           className={cn(
             "flex-1 px-3 py-2 rounded-md",
-            "text-sm font-mono uppercase tracking-wider",
+            "text-sm font-mono",
             "border border-gray-300 dark:border-gray-600",
             "bg-white dark:bg-gray-900",
             "text-gray-900 dark:text-gray-100",
@@ -200,27 +186,29 @@ export function LicenseKeyInput({
           disabled={isPending}
         />
 
-        <Button
-          size="sm"
-          onClick={handleVerify}
-          isLoading={isPending}
-          disabled={licenseKey.length < 19}
-        >
-          Verify
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={handleVerify}
+            isLoading={isPending}
+            disabled={licenseKey.length < 8}
+          >
+            Verify
+          </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setIsExpanded(false)
-            setLicenseKey("")
-            setError(null)
-          }}
-          disabled={isPending}
-        >
-          Cancel
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setIsExpanded(false)
+              setLicenseKey("")
+              setError(null)
+            }}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
 
       {error && (

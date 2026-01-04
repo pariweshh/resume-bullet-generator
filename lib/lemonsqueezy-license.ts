@@ -28,6 +28,7 @@ export interface LicenseValidationResponse {
     activationUsage: number
     createdAt: string
     expiresAt: string | null
+    testMode: boolean
   }
   instance?: {
     id: string
@@ -58,6 +59,7 @@ export interface LicenseData {
   activationsUsed: number
   activationLimit: number
   status: string
+  testMode: boolean
   error?: string
 }
 
@@ -122,6 +124,7 @@ export async function validateLicenseKey(
         activationsUsed: 0,
         activationLimit: 0,
         status: data.license_key?.status || "invalid",
+        testMode: data.license_key?.test_mode || false,
         error: data.error || "Invalid license key",
       }
     }
@@ -132,6 +135,7 @@ export async function validateLicenseKey(
 
     // Get the license status
     const status = data.license_key?.status || "active"
+    const testMode = data.license_key?.test_mode || false
 
     return {
       isValid: true,
@@ -140,6 +144,7 @@ export async function validateLicenseKey(
       activationsUsed: data.license_key?.activation_usage || 0,
       activationLimit: data.license_key?.activation_limit || 0,
       status,
+      testMode,
     }
   } catch (error) {
     console.error("License validation error:", getErrorMessage(error))
@@ -150,6 +155,7 @@ export async function validateLicenseKey(
       activationsUsed: 0,
       activationLimit: 0,
       status: "error",
+      testMode: false,
       error: "Failed to validate license. Please try again.",
     }
   }
@@ -194,6 +200,7 @@ export async function activateLicenseKey(
         activationsUsed: 0,
         activationLimit: 0,
         status: data.license_key?.status || "invalid",
+        testMode: data.license_key?.test_mode || false,
         error: data.error || "Failed to activate license",
       }
     }
@@ -209,6 +216,7 @@ export async function activateLicenseKey(
       activationsUsed: data.license_key?.activation_usage || 0,
       activationLimit: data.license_key?.activation_limit || 0,
       status: data.license_key?.status || "active",
+      testMode: data.license_key?.test_mode || false,
       instanceId: data.instance?.id,
     }
   } catch (error) {
@@ -220,6 +228,7 @@ export async function activateLicenseKey(
       activationsUsed: 0,
       activationLimit: 0,
       status: "error",
+      testMode: false,
       error: "Failed to activate license. Please try again.",
     }
   }

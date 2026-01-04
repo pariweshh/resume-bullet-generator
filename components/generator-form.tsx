@@ -210,7 +210,7 @@ export function GeneratorForm({
         showCount
         currentLength={experience.length}
         helperText="Describe your relevant skills, projects, and achievements"
-        className="min-h-[150px]"
+        className="min-h-37.5"
         disabled={isPending}
       />
 
