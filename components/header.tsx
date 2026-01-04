@@ -1,4 +1,4 @@
-import { Badge, SparklesIcon } from "@/components/ui"
+import { Badge } from "@/components/ui"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import Link from "next/link"

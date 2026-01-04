@@ -8,10 +8,35 @@ import { Redis } from "@upstash/redis"
  *
  * Free tier: 10,000 requests/day — plenty for an MVP
  */
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+function createRedisClient(): Redis {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+
+  if (!url || !token) {
+    // Return a mock client during build time or when env vars are missing
+    // This prevents errors during Next.js build/dev initialization
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN environment variables"
+      )
+    }
+
+    // In development, log a warning but don't crash
+    console.warn(
+      "⚠️  Redis not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env.local"
+    )
+
+    // Return a dummy client that will fail gracefully
+    return new Redis({
+      url: "https://placeholder.upstash.io",
+      token: "placeholder",
+    })
+  }
+
+  return new Redis({ url, token })
+}
+
+export const redis = createRedisClient()
 
 /**
  * Redis key prefixes for organization and easy querying.
@@ -25,6 +50,9 @@ export const REDIS_KEYS = {
 
   /** Email to license mapping for customer lookup */
   emailLicense: (email: string) => `email:${email}`,
+
+  /** Order ID to license key mapping for success page */
+  orderLicense: (orderId: string) => `order:${orderId}`,
 
   /** Daily generation count for analytics */
   dailyStats: (date: string) => `stats:daily:${date}`,
@@ -47,13 +75,13 @@ export const FREE_TIER = {
 export const PAID_TIERS = {
   basic: {
     name: "Basic",
-    price: 9,
+    price: 9.99,
     generations: 50,
     ttlSeconds: null, // Never expires
   },
   lifetime: {
     name: "Lifetime",
-    price: 19,
+    price: 19.99,
     generations: Infinity,
     ttlSeconds: null,
   },
@@ -137,6 +165,9 @@ export async function createLicense(
 
   // Create email -> license mapping for customer support lookups
   await redis.set(REDIS_KEYS.emailLicense(data.email), licenseKey)
+
+  // Create order -> license mapping for success page lookup
+  await redis.set(REDIS_KEYS.orderLicense(data.orderId), licenseKey)
 }
 
 /**
@@ -199,6 +230,18 @@ export async function checkLicenseValidity(licenseKey: string): Promise<{
  */
 export async function getLicenseByEmail(email: string): Promise<string | null> {
   return redis.get<string>(REDIS_KEYS.emailLicense(email))
+}
+
+/**
+ * Gets license key by order ID (for success page).
+ *
+ * @param orderId - LemonSqueezy order ID
+ * @returns License key or null
+ */
+export async function getLicenseByOrderId(
+  orderId: string
+): Promise<string | null> {
+  return redis.get<string>(REDIS_KEYS.orderLicense(orderId))
 }
 
 /**

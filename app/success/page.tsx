@@ -33,54 +33,64 @@ function SuccessContent() {
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Fetch license key from stored email.
-   * In production, you'd use the order_id to look up the license.
-   * For MVP, we check localStorage for recently entered email.
+   * Fetch license key by order ID with retry logic.
+   * Webhook might take a few seconds to process.
    */
   useEffect(() => {
+    if (!orderId) {
+      setIsLoading(false)
+      setError(
+        "No order ID found. Please check your email for your license key."
+      )
+      return
+    }
+
+    let attempts = 0
+    const maxAttempts = 10
+    const retryDelay = 2000 // 2 seconds between retries
+
     const fetchLicense = async () => {
-      setIsLoading(true)
-
       try {
-        // Check if we have a license key in localStorage already
-        const storedLicense = localStorage.getItem("license_key")
+        const response = await fetch(`/api/license/${orderId}`)
+        const data = await response.json()
 
-        if (storedLicense) {
-          // Verify it's valid
-          const response = await fetch("/api/verify-license", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ licenseKey: storedLicense }),
-          })
+        if (response.ok && data.found) {
+          // License found!
+          setLicenseKey(data.licenseKey)
+          setTier(data.tier)
+          setIsLoading(false)
 
-          const data = await response.json()
-
-          if (response.ok && data.isValid) {
-            setLicenseKey(storedLicense)
-            setTier(data.tier)
-            setIsLoading(false)
-            return
-          }
+          // Auto-save to localStorage
+          localStorage.setItem("license_key", data.licenseKey)
+          return true
         }
 
-        // If no valid stored license, show instructions
-        // In production, you'd have a way to look up by order_id or email
-        setError(
-          "Your license key has been sent to your email. You can also find it in your LemonSqueezy receipt."
-        )
+        return false
       } catch (err) {
-        console.error("Failed to fetch license:", err)
-        setError(
-          "Unable to retrieve license key. Please check your email for your license key."
-        )
-      } finally {
-        setIsLoading(false)
+        console.error("Error fetching license:", err)
+        return false
       }
     }
 
-    // Small delay to allow webhook to process
-    const timer = setTimeout(fetchLicense, 1500)
-    return () => clearTimeout(timer)
+    const attemptFetch = async () => {
+      attempts++
+
+      const found = await fetchLicense()
+
+      if (!found && attempts < maxAttempts) {
+        // Retry after delay
+        setTimeout(attemptFetch, retryDelay)
+      } else if (!found) {
+        // Max attempts reached
+        setIsLoading(false)
+        setError(
+          "Your license is being processed. Please check your email or refresh this page in a minute."
+        )
+      }
+    }
+
+    // Start fetching after a short initial delay (give webhook time to process)
+    setTimeout(attemptFetch, 1500)
   }, [orderId])
 
   /**

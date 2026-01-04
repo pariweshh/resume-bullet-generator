@@ -26,7 +26,7 @@ const TIERS = [
   {
     id: "basic",
     name: "Basic",
-    price: 14.99,
+    price: 9.99,
     currency: "AUD",
     description: "For a single job search",
     features: [
@@ -44,7 +44,7 @@ const TIERS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    price: 29.99,
+    price: 19.99,
     currency: "AUD",
     description: "Unlimited forever",
     features: [
