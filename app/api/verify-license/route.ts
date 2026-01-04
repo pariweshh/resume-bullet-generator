@@ -56,8 +56,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Check if license is active
-    if (validation.status !== "active") {
+    // Check if license is in a usable state
+    // Valid statuses: "active", "inactive" (test mode), or if valid=true from API
+    const invalidStatuses = ["expired", "disabled", "revoked"]
+    if (invalidStatuses.includes(validation.status.toLowerCase())) {
       return NextResponse.json(
         {
           isValid: false,

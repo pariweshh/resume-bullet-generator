@@ -107,6 +107,12 @@ export async function validateLicenseKey(
 
     const data = await response.json()
 
+    // Debug logging
+    console.log(
+      "LemonSqueezy validation response:",
+      JSON.stringify(data, null, 2)
+    )
+
     // Handle invalid license
     if (!data.valid) {
       return {
@@ -124,13 +130,16 @@ export async function validateLicenseKey(
     const variantId = data.meta?.variant_id
     const tier = getTierFromVariantId(variantId)
 
+    // Get the license status
+    const status = data.license_key?.status || "active"
+
     return {
       isValid: true,
       tier,
       email: data.meta?.customer_email || null,
       activationsUsed: data.license_key?.activation_usage || 0,
       activationLimit: data.license_key?.activation_limit || 0,
-      status: data.license_key?.status || "active",
+      status,
     }
   } catch (error) {
     console.error("License validation error:", getErrorMessage(error))

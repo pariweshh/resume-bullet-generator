@@ -157,7 +157,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json(ERRORS.INVALID_LICENSE, { status: 402 })
       }
 
-      if (licenseStatus.status !== "active") {
+      // Check if license is in a usable state
+      const invalidStatuses = ["expired", "disabled", "revoked"]
+      if (invalidStatuses.includes(licenseStatus.status.toLowerCase())) {
         return NextResponse.json(
           createErrorResponse(
             "INVALID_LICENSE",
