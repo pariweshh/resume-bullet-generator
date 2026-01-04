@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
-import { nanoid } from "nanoid"
-import {
-  verifyWebhookSignature,
-  parseWebhookPayload,
-  getTierFromVariant,
-} from "@/lib/lemonsqueezy"
-import { createLicense } from "@/lib/redis"
+import { verifyWebhookSignature, parseWebhookPayload } from "@/lib/lemonsqueezy"
+import { trackDailyGeneration } from "@/lib/redis"
 import { getErrorMessage } from "@/lib/utils"
 
 /**
  * POST /api/webhook
  *
  * Handles incoming webhooks from LemonSqueezy.
- * Currently processes:
- * - order_created: Creates a new license for the customer
+ *
+ * Since we're using LemonSqueezy's built-in license key generation,
+ * this webhook is mainly for:
+ * - Logging purchases for analytics
+ * - Handling refunds (future: invalidate license)
  *
  * Webhook setup in LemonSqueezy:
  * 1. Go to Settings → Webhooks
  * 2. Add endpoint: https://yourdomain.com/api/webhook
- * 3. Select events: order_created
+ * 3. Select events: order_created, order_refunded
  * 4. Copy the signing secret to LEMONSQUEEZY_WEBHOOK_SECRET
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -67,12 +65,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         break
 
       default:
-        // Log but don't fail for unhandled events
         console.log(`Unhandled webhook event: ${eventName}`)
     }
 
     // Always return 200 to acknowledge receipt
-    // LemonSqueezy will retry on non-2xx responses
     return NextResponse.json({ received: true }, { status: 200 })
   } catch (error) {
     console.error("Webhook processing error:", getErrorMessage(error))
@@ -87,7 +83,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /**
  * Handles the order_created event.
- * Creates a license key and stores it in Redis.
+ * Logs the purchase for analytics.
+ *
+ * LemonSqueezy handles license key generation and emailing to customer.
  */
 async function handleOrderCreated(
   data: NonNullable<ReturnType<typeof parseWebhookPayload>>["data"]
@@ -100,77 +98,33 @@ async function handleOrderCreated(
     return
   }
 
-  // Get the variant ID to determine tier
-  const variantId = attributes.first_order_item.variant_id
-  const tier = getTierFromVariant(variantId)
-
-  if (!tier) {
-    console.error(`Unknown variant ID: ${variantId} for order ${data.id}`)
-    // Don't throw - we still want to return 200 to prevent retries
-    return
-  }
-
-  // Generate a unique license key
-  const licenseKey = generateLicenseKey()
-
-  // Store the license in Redis
-  await createLicense(licenseKey, {
-    tier,
-    email: attributes.user_email,
-    purchasedAt: attributes.created_at,
+  console.log(`✅ New purchase:`, {
     orderId: data.id,
-  })
-
-  console.log(`License created for order ${data.id}:`, {
-    licenseKey,
-    tier,
     email: attributes.user_email,
+    total: attributes.total,
+    variantId: attributes.first_order_item.variant_id,
   })
 
-  // Note: In a production app, you'd also want to:
-  // 1. Send the license key via email (using Resend, SendGrid, etc.)
-  // 2. Or rely on LemonSqueezy's built-in license key delivery
-  //
-  // For MVP, we'll display the license key on the success page
-  // using the order ID from the redirect URL
+  // Track for analytics (optional)
+  await trackDailyGeneration().catch(console.error)
 }
 
 /**
  * Handles the order_refunded event.
- * Invalidates the license associated with the order.
+ * Logs the refund for manual review.
+ *
+ * Future: Could call LemonSqueezy API to revoke the license key.
  */
 async function handleOrderRefunded(
   data: NonNullable<ReturnType<typeof parseWebhookPayload>>["data"]
 ): Promise<void> {
-  console.log(`Order refunded: ${data.id}`, {
+  console.log(`⚠️ Order refunded: ${data.id}`, {
     email: data.attributes.user_email,
+    total: data.attributes.total,
   })
 
-  // For a complete implementation, you would:
-  // 1. Look up the license by order ID
-  // 2. Delete or invalidate the license in Redis
-  //
-  // For MVP, refunds are rare and can be handled manually
-  // by checking LemonSqueezy dashboard
-}
-
-/**
- * Generates a unique, readable license key.
- * Format: XXXX-XXXX-XXXX-XXXX (16 characters + 3 dashes)
- *
- * Using nanoid for cryptographically secure random generation.
- */
-function generateLicenseKey(): string {
-  // Use uppercase alphanumeric characters for readability
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Removed ambiguous chars: 0, O, 1, I
-  const segment = () =>
-    nanoid(4)
-      .toUpperCase()
-      .split("")
-      .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
-      .join("")
-
-  return `${segment()}-${segment()}-${segment()}-${segment()}`
+  // For MVP, refunds are handled manually via LemonSqueezy dashboard
+  // The license can be disabled in LemonSqueezy's interface
 }
 
 /**

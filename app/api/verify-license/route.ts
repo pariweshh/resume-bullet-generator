@@ -1,82 +1,101 @@
 import { NextRequest, NextResponse } from "next/server"
-import { checkLicenseValidity, getLicense } from "@/lib/redis"
-import {
-  validateRequest,
-  verifyLicenseSchema,
-  createErrorResponse,
-  type LicenseStatus,
-} from "@/lib/validation"
+import { validateLicenseKey } from "@/lib/lemonsqueezy-license"
+import { getUsageCount, PAID_TIERS } from "@/lib/redis"
 import { getErrorMessage } from "@/lib/utils"
 
 /**
  * POST /api/verify-license
  *
- * Verifies a license key and returns its status.
- * Used by the frontend to check if a stored license is still valid.
+ * Verifies a license key using LemonSqueezy's API.
+ * Returns tier, validity, and remaining generations.
  *
  * Request body:
  * - licenseKey: string
  *
  * Response:
- * - 200: { isValid: boolean, tier: string | null, remaining: number, email?: string }
- * - 400: Validation error
- * - 500: Server error
+ * - isValid: boolean
+ * - tier: "basic" | "lifetime" | null
+ * - remaining: number
+ * - email?: string
+ * - error?: string
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Parse and validate request body
-    let body: unknown
+    // Parse request body
+    let body: { licenseKey?: string }
     try {
       body = await request.json()
     } catch {
       return NextResponse.json(
-        createErrorResponse("VALIDATION_ERROR", "Invalid JSON in request body"),
+        { isValid: false, error: "Invalid JSON in request body" },
         { status: 400 }
       )
     }
 
-    const validation = validateRequest(verifyLicenseSchema, body)
-    if (!validation.success || !validation.data) {
+    const { licenseKey } = body
+
+    if (!licenseKey || typeof licenseKey !== "string") {
       return NextResponse.json(
-        createErrorResponse(
-          "VALIDATION_ERROR",
-          validation.error ?? "Invalid request"
-        ),
+        { isValid: false, error: "License key is required" },
         { status: 400 }
       )
     }
 
-    const { licenseKey } = validation.data
+    const trimmedKey = licenseKey.trim()
 
-    // Check license validity
-    const validity = await checkLicenseValidity(licenseKey)
+    // Validate with LemonSqueezy API
+    const validation = await validateLicenseKey(trimmedKey)
 
-    // Get additional license info if valid
-    let email: string | undefined
-    if (validity.isValid) {
-      const license = await getLicense(licenseKey)
-      email = license?.email
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          isValid: false,
+          error: validation.error || "Invalid license key",
+        },
+        { status: 400 }
+      )
     }
 
-    // Build response
-    const response: LicenseStatus = {
-      isValid: validity.isValid,
-      tier: validity.tier,
-      remaining: validity.remaining,
-      ...(email && { email }),
+    // Check if license is active
+    if (validation.status !== "active") {
+      return NextResponse.json(
+        {
+          isValid: false,
+          error: `License is ${validation.status}`,
+        },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json(response, {
-      status: 200,
-      headers: {
-        // Cache for 1 minute to reduce Redis calls on repeated checks
-        "Cache-Control": "private, max-age=60",
+    // Calculate remaining generations
+    let remaining = 999 // Default for lifetime
+
+    if (validation.tier === "basic") {
+      // Get usage count from Redis
+      const used = await getUsageCount(trimmedKey)
+      const maxGenerations = PAID_TIERS.basic.generations
+      remaining = Math.max(0, maxGenerations - used)
+    }
+
+    // Return success response
+    return NextResponse.json(
+      {
+        isValid: true,
+        tier: validation.tier,
+        remaining,
+        email: validation.email,
       },
-    })
+      {
+        headers: {
+          // Cache for 1 minute to reduce API calls
+          "Cache-Control": "private, max-age=60",
+        },
+      }
+    )
   } catch (error) {
     console.error("License verification error:", getErrorMessage(error))
     return NextResponse.json(
-      createErrorResponse("INTERNAL_ERROR", "Failed to verify license"),
+      { isValid: false, error: "Verification failed" },
       { status: 500 }
     )
   }
@@ -87,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function GET(): Promise<NextResponse> {
   return NextResponse.json(
-    createErrorResponse("VALIDATION_ERROR", "Method not allowed. Use POST."),
+    { isValid: false, error: "Method not allowed. Use POST." },
     { status: 405 }
   )
 }

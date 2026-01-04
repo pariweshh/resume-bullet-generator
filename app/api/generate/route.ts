@@ -9,11 +9,11 @@ import {
 import {
   getUsageCount,
   incrementUsage,
-  checkLicenseValidity,
-  incrementLicenseUsage,
   trackDailyGeneration,
   FREE_TIER,
+  PAID_TIERS,
 } from "@/lib/redis"
+import { validateLicenseKey } from "@/lib/lemonsqueezy-license"
 import {
   validateRequest,
   generateRequestSchema,
@@ -150,26 +150,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let identifier = clientIp
 
     if (licenseKey) {
-      // Paid user: validate license
-      const licenseStatus = await checkLicenseValidity(licenseKey)
+      // Paid user: validate license with LemonSqueezy
+      const licenseStatus = await validateLicenseKey(licenseKey)
 
       if (!licenseStatus.isValid || !licenseStatus.tier) {
         return NextResponse.json(ERRORS.INVALID_LICENSE, { status: 402 })
       }
 
-      tier = licenseStatus.tier
-      remaining = licenseStatus.remaining
-      identifier = licenseKey
-
-      // Check if paid user has remaining generations (for basic tier)
-      if (tier === "basic" && remaining <= 0) {
+      if (licenseStatus.status !== "active") {
         return NextResponse.json(
           createErrorResponse(
-            "LIMIT_REACHED",
-            "You've used all 50 generations. Upgrade to Lifetime for unlimited access."
+            "INVALID_LICENSE",
+            `License is ${licenseStatus.status}`
           ),
           { status: 402 }
         )
+      }
+
+      tier = licenseStatus.tier
+      identifier = licenseKey
+
+      // Get usage from Redis for basic tier
+      if (tier === "basic") {
+        const used = await getUsageCount(licenseKey)
+        const maxGenerations = PAID_TIERS.basic.generations
+        remaining = Math.max(0, maxGenerations - used)
+
+        if (remaining <= 0) {
+          return NextResponse.json(
+            createErrorResponse(
+              "LIMIT_REACHED",
+              "You've used all 50 generations. Upgrade to Lifetime for unlimited access."
+            ),
+            { status: 402 }
+          )
+        }
+      } else {
+        remaining = 999 // Lifetime
       }
     } else {
       // Free user: check usage limit
@@ -209,14 +226,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Update usage tracking
     if (licenseKey && tier !== "free") {
-      await incrementLicenseUsage(licenseKey)
+      // For paid users, track by license key
+      await incrementUsage(licenseKey, true) // true = no expiry
       // Recalculate remaining for paid users
       if (tier === "lifetime") {
-        remaining = Infinity
+        remaining = 999
       } else {
         remaining = Math.max(0, remaining - 1)
       }
     } else {
+      // For free users, track by IP
       await incrementUsage(identifier, false)
     }
 
