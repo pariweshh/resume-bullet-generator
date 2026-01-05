@@ -327,7 +327,7 @@ function SuccessContent() {
         <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Having trouble?{" "}
           <a
-            href="mailto:support@example.com"
+            href="mailto:pariweshhtamrakar@gmail.com"
             className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 underline"
           >
             Contact support
